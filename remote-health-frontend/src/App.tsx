@@ -28,6 +28,7 @@ import { UserRole } from './types/auth';
 import DataEntryPage from './pages/DataEntryPage';
 import DiseaseThresholdsPage from './pages/DiseaseThresholdsPage';
 import DataSimulatorPage from './pages/DataSimulatorPage';
+import SelectPatientForNotesPage from './pages/SelectPatientForNotesPage';
 
 // Role-based redirect component
 const RoleBasedRedirect: React.FC = () => {
@@ -122,9 +123,9 @@ const App: React.FC = () => {
               }
             />
             <Route 
-              path="/patients/new" 
+              path="/patient-add" 
               element={
-                <AuthGuard allowedRoles={['DOCTOR' as UserRole]}>
+                <AuthGuard allowedRoles={['DOCTOR' as UserRole, 'ADMIN' as UserRole]}>
                   <Layout><PatientAddPage /></Layout>
                 </AuthGuard>
               }
@@ -138,9 +139,17 @@ const App: React.FC = () => {
               }
             />
             <Route 
-              path="/doctor-notes" 
+              path="/select-patient-for-notes" 
               element={
-                <AuthGuard allowedRoles={['DOCTOR' as UserRole]}>
+                <AuthGuard allowedRoles={['DOCTOR' as UserRole, 'ADMIN' as UserRole]}>
+                  <Layout><SelectPatientForNotesPage /></Layout>
+                </AuthGuard>
+              }
+            />
+            <Route 
+              path="/doctor-notes/:id" 
+              element={
+                <AuthGuard allowedRoles={['DOCTOR' as UserRole, 'ADMIN' as UserRole]}>
                   <Layout><DoctorNotesPage /></Layout>
                 </AuthGuard>
               }

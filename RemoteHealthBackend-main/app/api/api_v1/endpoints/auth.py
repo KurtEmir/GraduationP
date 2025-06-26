@@ -36,9 +36,22 @@ def register(
         from app.crud import patients as crud_patients
         from app.schemas.patient import PatientProfileCreate
         
+        doctor_id = None
+        if user_in.doctor_code:
+            doctor = db.query(UserModel).filter(UserModel.doctor_code == user_in.doctor_code, UserModel.role == UserRole.DOCTOR).first()
+            if not doctor:
+                # This part needs careful consideration. For now, let's raise an error.
+                # In a real-world scenario, you might want to handle this more gracefully.
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid Doctor Code provided.",
+                )
+            doctor_id = doctor.id
+
         patient_profile_data = PatientProfileCreate(
             user_id=user.id,
             full_name=f"{user.first_name} {user.last_name}",
+            doctor_id=doctor_id,
             age=25,  # Default age, user can update later
             date_of_birth=None,  # User can set this later
             gender="Not specified",  # User can set this later

@@ -6,6 +6,7 @@ export interface User {
     role: UserRole;
     firstName?: string;
     lastName?: string;
+    doctor_code?: string;
 }
 
 export interface LoginRequest {
@@ -19,6 +20,7 @@ export interface RegisterRequest {
     firstName: string;
     lastName: string;
     role: UserRole;
+    doctor_code?: string;
 }
 
 export interface AuthResponse {

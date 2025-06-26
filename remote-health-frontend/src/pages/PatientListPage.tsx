@@ -24,6 +24,18 @@ const PatientListPage: React.FC = () => {
     fetchPatients();
   }, []);
 
+  const handleDelete = async (patientId: number) => {
+    if (window.confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+      try {
+        await patientService.deletePatient(patientId);
+        setPatients(prevPatients => prevPatients.filter(p => p.id !== patientId));
+      } catch (err) {
+        setError('Failed to delete patient. Please try again.');
+        console.error('Error deleting patient:', err);
+      }
+    }
+  };
+
   const filteredPatients = patients.filter(patient =>
     (patient.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (patient.email || '').toLowerCase().includes(searchTerm.toLowerCase())
@@ -131,6 +143,15 @@ const PatientListPage: React.FC = () => {
                 </svg>
                 Message
               </Link>
+              <button
+                onClick={() => handleDelete(typeof patient.id === 'string' ? parseInt(patient.id, 10) : patient.id)}
+                className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md shadow-sm font-medium transition-colors flex items-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
+                </svg>
+                Delete
+              </button>
             </div>
           </div>
         ))}

@@ -11,6 +11,7 @@ const RegisterPage: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<UserRole>('PATIENT');
+  const [doctorCode, setDoctorCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const RegisterPage: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      await authService.register({ email, password, firstName, lastName, role });
+      await authService.register({ email, password, firstName, lastName, role, doctor_code: doctorCode });
       navigate('/login'); // Redirect to login after successful registration
     } catch (err) {
       setError('Failed to register. Please try again.');
@@ -135,6 +136,21 @@ const RegisterPage: React.FC = () => {
                 {/* <option value="ADMIN">Admin</option> */}
               </select>
             </div>
+
+            {role === 'PATIENT' && (
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <UserIcon />
+                </span>
+                <input
+                  type="text"
+                  value={doctorCode}
+                  onChange={(e) => setDoctorCode(e.target.value)}
+                  placeholder="Doctor's Code (Optional)"
+                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            )}
 
             <button
               type="submit"

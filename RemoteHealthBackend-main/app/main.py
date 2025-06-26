@@ -1,6 +1,7 @@
 import logging
 import sys
 import json
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
@@ -21,14 +22,9 @@ Base.metadata.create_all(bind=engine)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(settings.PROJECT_NAME)
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
-)
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the database with default data on startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     logger.info("Starting up the application...")
     try:
         db = SessionLocal()
@@ -37,7 +33,17 @@ async def startup_event():
         logger.info("Database initialization completed successfully!")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
-        raise e
+        # Not re-raising here to allow the app to start even if DB init fails,
+        # which might be desired in some scenarios. Log should be monitored.
+    yield
+    # Shutdown
+    logger.info("Shutting down the application...")
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
+)
 
 # Custom RequestValidationError handler
 @app.exception_handler(RequestValidationError)

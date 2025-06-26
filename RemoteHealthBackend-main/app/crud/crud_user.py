@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
-from app.models import User
+from app.models.user_model import User, UserRole, generate_doctor_code
 from app.schemas.user import UserCreate, UserUpdate
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
@@ -11,6 +11,16 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return db.query(User).filter(User.email == email).first()
 
     def create(self, db: Session, *, obj_in: UserCreate) -> User:
+        doctor_id = None
+        if obj_in.doctor_code:
+            doctor = db.query(User).filter(User.doctor_code == obj_in.doctor_code, User.role == UserRole.DOCTOR).first()
+            if doctor:
+                doctor_id = doctor.id
+            else:
+                # Optionally, handle the case where the code is invalid.
+                # For now, we'll just proceed without linking.
+                pass
+
         db_obj = User(
             email=obj_in.email,
             first_name=obj_in.first_name,
@@ -18,8 +28,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             role=obj_in.role,
             hashed_password=get_password_hash(obj_in.password),
             is_active=True,
-            is_superuser=False
+            is_superuser=False,
+            doctor_id=doctor_id  # Assign the found doctor's ID
         )
+        if obj_in.role == UserRole.DOCTOR:
+            db_obj.doctor_code = generate_doctor_code()
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)

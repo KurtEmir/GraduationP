@@ -33,6 +33,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
+import MonitorPatientsModal from '../components/Dashboard/MonitorPatientsModal';
 
 // Register Chart.js components
 ChartJS.register(
@@ -170,6 +171,9 @@ const DashboardPage: React.FC = () => {
   const [patientDetails, setPatientDetails] = useState<Patient | null>(null);
   const [useFakeData, setUseFakeData] = useState(true); // Toggle for demo mode
   const fakeDataIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMonitorModalOpen, setIsMonitorModalOpen] = useState(false);
+  const [monitoredPatientIds, setMonitoredPatientIds] = useState<number[]>([]);
 
   const fetchPatientSpecificData = useCallback(async (currentUserId: number, currentUserEmail: string, currentUserFirstName?: string, currentUserLastName?: string) => {
     // Double-check user role before making any patient-specific API calls
@@ -279,7 +283,6 @@ const DashboardPage: React.FC = () => {
   // For now, vitals are fetched once with other patient data.
 
   // Modal State for Patient's Add Vital Signs
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVitals, setNewVitals] = useState<{
     heartRate: string;
     bloodPressureSystolic: string;
@@ -757,25 +760,25 @@ const DashboardPage: React.FC = () => {
                     </svg>
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">Log Vitals</p>
-                    <p className="text-xs text-blue-100">Add new measurements</p>
+                    <p className="font-medium">Monitor Patients</p>
+                    <p className="text-xs text-blue-100">Select Patients</p>
                   </div>
                 </div>
               </button>
               
               <Link
-                to="/my-vitals-history"
-                className="p-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 group block"
+                to="/messaging"
+                className="p-4 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl hover:from-purple-600 hover:to-violet-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 group block"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">View History</p>
-                    <p className="text-xs text-green-100">Past measurements</p>
+                    <p className="font-medium">Messaging</p>
+                    <p className="text-xs text-purple-100">Patient communication</p>
                   </div>
                 </div>
               </Link>
@@ -827,79 +830,88 @@ const DashboardPage: React.FC = () => {
     );
   };
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 min-h-screen">
-      {/* Welcome Banner */}
-      <div className="mb-8 p-6 sm:p-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-2xl rounded-3xl relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-sm"></div>
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 tracking-tight">
-                Welcome back, {userFullName}! 👋
-              </h1>
-              <p className="text-lg sm:text-xl text-blue-100 font-medium">
-                {formattedDate}
-              </p>
-            </div>
-            <div className="hidden sm:block">
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-                <div className="text-2xl text-white">
-                  {user?.role === 'PATIENT' ? '🏥' : user?.role === 'DOCTOR' ? '👩‍⚕️' : '👨‍💼'}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 text-blue-100">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium">System Status: Online</span>
-          </div>
-        </div>
-      </div>
+  const renderAdminDoctorDashboard = () => {
+    const today = new Date();
+    const formattedDate = format(today, 'dd MMMM yyyy, EEEE', { locale: enUS });
+    const userFullName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'User';
 
-      {/* Quick Actions - Patients only */}
-      {user?.role === 'PATIENT' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        {/* Header */}
+        <div className="p-8 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg rounded-2xl mb-8">
+          <h1 className="text-3xl font-bold text-white">Welcome, {userFullName}! 👋</h1>
+          <p className="text-blue-100">{formattedDate}</p>
+          {user?.role === 'DOCTOR' && user.doctor_code && (
+            <div className="mt-4">
+              <p className="text-white">Your code: <span className="font-bold bg-white text-indigo-600 px-2 py-1 rounded">{user.doctor_code}</span></p>
+            </div>
+          )}
+        </div>
+
+        {user && <div className="mb-8">
+            <DashboardSummaryCards
+                totalPatients={patients.length}
+                criticalAlerts={allSystemAlerts.length}
+                anomalies={2} // Placeholder for now
+                healthRecords={healthRecordsActivity.reduce((sum, item) => sum + item.count, 0)}
+                userRole={user.role}
+            />
+        </div>}
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Link
+            to="/add-patient"
+            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+          >
             <div className="flex items-center space-x-4">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V3a1 1 0 011-1z" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Add Vital Signs</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">Log health metrics</p>
+                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Add Patient</p>
+                <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">New Registration</p>
               </div>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-            <div className="flex items-center space-x-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 text-green-600 group-hover:from-green-100 group-hover:to-emerald-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Schedule Appointment</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-green-600 transition-colors">Book appointments</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+          </Link>
+          <button
+            onClick={() => setIsMonitorModalOpen(true)}
+            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+          >
             <div className="flex items-center space-x-4">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 text-purple-600 group-hover:from-purple-100 group-hover:to-violet-100 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Health Records</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-purple-600 transition-colors">View documents</p>
+                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Monitor</p>
+                <p className="text-lg font-bold text-gray-800 group-hover:text-purple-600 transition-colors">Select Patients</p>
               </div>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
+          </button>
+          <Link
+            to="/messaging"
+            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 text-pink-600 group-hover:from-pink-100 group-hover:to-rose-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Messaging</p>
+                <p className="text-lg font-bold text-gray-800 group-hover:text-pink-600 transition-colors">Patient Communication</p>
+              </div>
+            </div>
+          </Link>
+          <Link
+            to="/select-patient-for-notes"
+            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+          >
             <div className="flex items-center space-x-4">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 text-orange-600 group-hover:from-orange-100 group-hover:to-red-100 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
@@ -907,251 +919,27 @@ const DashboardPage: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Contact Support</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">Get help</p>
+                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Clinical Notes</p>
+                <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">Add Patient Notes</p>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
-      )}
+      </div>
+    );
+  };
 
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       {/* Patient view - Personal dashboard */}
       {user?.role === 'PATIENT' && renderPatientDashboard()}
 
       {/* Doctor/Admin view - Overview dashboard */}
-      {user?.role === 'DOCTOR' && (
-        <>
-          {/* Enhanced Summary Cards for Doctor */}
-          <DashboardSummaryCards
-            totalPatients={patients.length}
-            criticalAlerts={allSystemAlerts.filter(alert => alert.type === 'CRITICAL').length}
-            anomalies={allSystemAlerts.filter(alert => alert.type === 'WARNING').length}
-            healthRecords={healthRecordsActivity.reduce((sum, item) => sum + item.count, 0)}
-            userRole="DOCTOR"
-          />
+      {(user?.role === 'DOCTOR' || user?.role === 'ADMIN') && renderAdminDoctorDashboard()}
+      
+      {/* Modals */}
 
-          {/* Main Content Grid */}
-          <div className="mb-8">
-            {/* Make Live Vitals Card much bigger and more prominent */}
-            <div className="w-full">
-              <LiveVitalsCard />
-            </div>
-          </div>
-
-          {/* Patients and Alerts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Patients Overview Card */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-800">Patient Overview</h2>
-                </div>
-                <Link
-                  to="/patient-list"
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium hover:underline transition-colors"
-                >
-                  View All →
-                </Link>
-              </div>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {patients.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                      </svg>
-                    </div>
-                    <p className="text-gray-500 text-sm">No patients assigned yet</p>
-                    <Link
-                      to="/patient-add"
-                      className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                    >
-                      Add Patient
-                    </Link>
-                  </div>
-                ) : (
-                  patients.slice(0, 5).map(patient => (
-                    <Link
-                      key={patient.id}
-                      to={`/patient-detail/${patient.id}`}
-                      className="block p-4 rounded-xl bg-gradient-to-r from-gray-50 to-blue-50/30 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                            {(patient.name || patient.full_name || 'P').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold text-gray-800">
-                              {patient.name || patient.full_name || 'Unknown Patient'}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {patient.email}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          {patient.role}
-                        </span>
-                        <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          {patient.status}
-                        </span>
-                      </div>
-                    </Link>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* System Alerts Card */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-red-50 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-800">System Alerts</h2>
-                </div>
-                <Link
-                  to="/alerts"
-                  className="text-red-600 hover:text-red-700 text-sm font-medium hover:underline transition-colors"
-                >
-                  View All →
-                </Link>
-              </div>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {allSystemAlerts.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <p className="text-gray-500 text-sm">All systems normal</p>
-                  </div>
-                ) : (
-                  allSystemAlerts.slice(0, 5).map(alert => (
-                    <div key={alert.id} className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50/30 border border-red-200 shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <div className="text-sm font-medium text-red-800">
-                            {alert.type}
-                          </div>
-                        </div>
-                        <div className="text-xs text-red-600">
-                          {alert.timestamp ? format(new Date(alert.timestamp), 'PPpp', { locale: enUS }) : 'Unknown time'}
-                        </div>
-                      </div>
-                      <div className="text-sm text-red-700 ml-4">
-                        {alert.message}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions for Doctor */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Link
-              to="/patient-add"
-              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Add Patient</p>
-                  <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">New registration</p>
-                </div>
-              </div>
-            </Link>
-            <Link
-              to="/patient-list"
-              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 text-green-600 group-hover:from-green-100 group-hover:to-emerald-100 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Patient List</p>
-                  <p className="text-lg font-bold text-gray-800 group-hover:text-green-600 transition-colors">Manage patients</p>
-                </div>
-              </div>
-            </Link>
-            <Link
-              to="/messaging"
-              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 text-purple-600 group-hover:from-purple-100 group-hover:to-violet-100 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Messaging</p>
-                  <p className="text-lg font-bold text-gray-800 group-hover:text-purple-600 transition-colors">Patient communication</p>
-                </div>
-              </div>
-            </Link>
-            <Link
-              to="/notes"
-              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 text-orange-600 group-hover:from-orange-100 group-hover:to-red-100 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-medium uppercase tracking-wider">Notes</p>
-                  <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">Clinical notes</p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </>
-      )}
-
-      {/* Footer */}
-      <div className="mt-12 border-t border-gray-200 pt-8 text-center">
-        <div className="flex items-center justify-center space-x-6 mb-4">
-          <div className="flex items-center space-x-2 text-gray-500">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm">System Online</span>
-          </div>
-          <div className="flex items-center space-x-2 text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <span className="text-sm">Secure Connection</span>
-          </div>
-        </div>
-        <p className="text-gray-500 text-sm">
-          &copy; 2025 Remote Health Monitoring System. All rights reserved.
-        </p>
-      </div>
-
-      {/* Modal for Adding Vital Signs */}
+      {/* Modal for Adding Vital Signs (Patient only) */}
       {user?.role === 'PATIENT' && (
         <div>
           {isModalOpen && (
@@ -1282,6 +1070,14 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Monitor Patients Modal (Doctor/Admin) */}
+      <MonitorPatientsModal
+        isOpen={isMonitorModalOpen}
+        onClose={() => setIsMonitorModalOpen(false)}
+        onSave={setMonitoredPatientIds}
+        initiallySelectedIds={monitoredPatientIds}
+      />
     </div>
   );
 };

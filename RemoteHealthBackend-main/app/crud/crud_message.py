@@ -67,30 +67,42 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageCreate]): # Using Mess
     def get_chat_partners(
         self, db: Session, *, current_user: User
     ) -> List[ChatPartnerSchema]:
-        print(f"DEBUG: get_chat_partners called by current_user: ID={current_user.id}, Role={current_user.role}") # DEBUG
+        # The 'current_user' from the dependency is a Pydantic schema, not a SQLAlchemy model.
+        # We need to fetch the SQLAlchemy model instance to access its relationships.
+        user_db = db.query(User).filter(User.id == current_user.id).first()
+        if not user_db:
+            return []
+
+        print(f"DEBUG: get_chat_partners called by current_user: ID={user_db.id}, Role={user_db.role}") # DEBUG
         partners = []
         potential_partners: List[User] = []
 
-        if current_user.role == UserRole.PATIENT:
-            print(f"DEBUG: Current user is PATIENT. Fetching DOCTORs.") # DEBUG
-            potential_partners = db.query(User).filter(User.role == UserRole.DOCTOR).all()
-        elif current_user.role == UserRole.DOCTOR:
-            print(f"DEBUG: Current user is DOCTOR. Fetching PATIENTs.") # DEBUG
-            potential_partners = db.query(User).filter(User.role == UserRole.PATIENT).all()
+        if user_db.role == UserRole.PATIENT:
+            # Patient sees their assigned doctor, if any
+            if user_db.doctor:
+                print(f"DEBUG: Current user is PATIENT with doctor_id {user_db.doctor_id}. Fetching their DOCTOR.") # DEBUG
+                potential_partners.append(user_db.doctor)
+            else:
+                print(f"DEBUG: Current user is PATIENT but has no assigned doctor.") # DEBUG
+
+        elif user_db.role == UserRole.DOCTOR:
+            # Doctor sees all patients assigned to them
+            print(f"DEBUG: Current user is DOCTOR. Fetching assigned PATIENTs.") # DEBUG
+            potential_partners = user_db.patients
         
         print(f"DEBUG: Found {len(potential_partners)} potential_partners.") # DEBUG
         for i, partner_user_obj in enumerate(potential_partners):
-            print(f"DEBUG: Processing potential_partner #{i}: ID={partner_user_obj.id}, Name={partner_user_obj.first_name} {partner_user_obj.last_name}, Role={partner_user_obj.role}, Email={partner_user_obj.email}") # DEBUG
-            if partner_user_obj.id == current_user.id:
-                print(f"DEBUG: Skipping self (ID={current_user.id}).") # DEBUG
+            print(f"DEBUG: Processing potential_partner #{i}: ID={partner_user_obj.id}, Name={partner_user_obj.full_name}, Role={partner_user_obj.role}, Email={partner_user_obj.email}") # DEBUG
+            if partner_user_obj.id == user_db.id:
+                print(f"DEBUG: Skipping self (ID={user_db.id}).") # DEBUG
                 continue
 
-            last_msg_obj = self.get_last_message(db, user_id=current_user.id, partner_id=partner_user_obj.id)
-            unread_count = self.get_unread_count(db, user_id=current_user.id, partner_id=partner_user_obj.id)
+            last_msg_obj = self.get_last_message(db, user_id=user_db.id, partner_id=partner_user_obj.id)
+            unread_count = self.get_unread_count(db, user_id=user_db.id, partner_id=partner_user_obj.id)
             
             chat_partner_data = ChatPartnerSchema(
                 id=partner_user_obj.id,
-                name=f"{partner_user_obj.first_name} {partner_user_obj.last_name}",
+                name=partner_user_obj.full_name,
                 role=partner_user_obj.role,
                 last_message=last_msg_obj.content if last_msg_obj else None,
                 last_message_timestamp=last_msg_obj.timestamp if last_msg_obj else None,

@@ -239,5 +239,34 @@ export const patientService = {
             throw new Error('Failed to fetch vital signs activity stats');
         }
         return response.json();
+    },
+
+    async pairWithDoctor(doctor_code: string): Promise<any> {
+        const response = await fetch(`${API_URL}/pair/pair-with-doctor`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeader(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ doctor_code }),
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Failed to pair with doctor' }));
+            throw new Error(errorData.detail);
+        }
+        return response.json();
+    },
+
+    async getDoctorPatients(): Promise<Patient[]> {
+        const response = await fetch(`${API_URL}/doctors/me/patients`, {
+            headers: {
+                ...getAuthHeader(),
+                'Content-Type': 'application/json',
+            },
+        });
+        if (!response.ok) {
+            throw new Error('Failed to fetch doctor patients');
+        }
+        return response.json();
     }
 };

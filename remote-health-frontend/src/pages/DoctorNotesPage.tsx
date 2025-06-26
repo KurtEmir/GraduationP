@@ -85,7 +85,7 @@ const DoctorNotesPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Doctor Notes</h1>
           <div className="bg-white shadow rounded-lg p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-xl font-bold text-indigo-600">
-              {patient.name.charAt(0)}
+              {patient.name?.charAt(0)}
             </div>
             <div>
               <div className="font-semibold text-lg text-gray-900">{patient.name}</div>

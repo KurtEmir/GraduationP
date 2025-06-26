@@ -49,7 +49,7 @@ const AllAlertsPage: React.FC = () => {
   const getPatientName = (patientId: number): string => {
     if (user?.role === 'PATIENT' && user?.id === patientId) return "Your Alerts";
     const patient = patients.find(p => p.id === patientId);
-    return patient ? patient.name : `Patient ID: ${patientId}`;
+    return patient?.name ?? `Patient ID: ${patientId}`;
   };
 
   const getAlertRowClass = (type: AlertType['type']) => {

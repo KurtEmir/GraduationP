@@ -99,7 +99,7 @@ const HealthMapPage: React.FC = () => {
                   onClick={() => setSelectedPatient(patient)}
                 >
                   <span className="text-xs font-medium text-gray-700">
-                    {patient.name.charAt(0)}
+                    {patient.name?.charAt(0)}
                   </span>
                 </div>
               );

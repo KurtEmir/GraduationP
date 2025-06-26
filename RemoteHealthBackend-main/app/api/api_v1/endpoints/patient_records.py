@@ -80,13 +80,19 @@ def read_all_patient_profiles(
             detail="Not authorized to access all patient profiles.",
         )
     
+    # If the user is a doctor, we only want to fetch their assigned patients.
+    doctor_id_to_filter = None
+    if current_user.role == UserRole.DOCTOR:
+        doctor_id_to_filter = current_user.id
+
     patient_profiles_models = crud_patients_obj.get_multi_filtered(
         db=db, 
         skip=skip, 
         limit=limit,
         name_search=name_search,
         chronic_disease_filter=chronic_disease_filter,
-        alarm_severity_filter=alarm_severity_filter
+        alarm_severity_filter=alarm_severity_filter,
+        doctor_id=doctor_id_to_filter # Pass down the doctor's ID
     )
 
     if not patient_profiles_models:
@@ -235,17 +241,42 @@ def get_clinical_overview_statistics(
             detail="Not authorized to access clinical overview statistics.",
         )
     
-    total_patient_count = db.query(func.count(models.PatientProfile.id)).scalar()
+    user_db = db.query(UserModel).filter(UserModel.id == current_user.id).first()
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Current user not found in database.")
 
-    active_alerts_by_severity = (
-        db.query(Alert.severity, func.count(Alert.id))
-        .filter(Alert.is_resolved == False)
-        .group_by(Alert.severity)
-        .all()
-    )
-    
-    # Convert to a more friendly dictionary format for the response
-    alerts_summary = {str(severity.value): count for severity, count in active_alerts_by_severity}
+    # Base query for patients
+    patients_query = db.query(models.PatientProfile)
+    alerts_query = db.query(Alert)
+
+    # If the current user is a doctor, filter by their assigned patients
+    if user_db.role == UserRole.DOCTOR:
+        # Get IDs of patients assigned to this doctor
+        assigned_patient_user_ids = [patient.id for patient in user_db.patients]
+        if not assigned_patient_user_ids:
+            total_patient_count = 0
+            alerts_summary = {}
+        else:
+            # Filter PatientProfile and Alert queries
+            patients_query = patients_query.join(UserModel, models.PatientProfile.user_id == UserModel.id).filter(UserModel.id.in_(assigned_patient_user_ids))
+            alerts_query = alerts_query.filter(Alert.patient_id.in_(assigned_patient_user_ids))
+            total_patient_count = patients_query.count()
+            active_alerts_by_severity = (
+                alerts_query.filter(Alert.is_resolved == False)
+                .group_by(Alert.severity)
+                .all()
+            )
+            alerts_summary = {str(severity.value): count for severity, count in active_alerts_by_severity}
+    else:
+        # For admins, count all patients
+        total_patient_count = patients_query.count()
+        active_alerts_by_severity = (
+            alerts_query.filter(Alert.is_resolved == False)
+            .group_by(Alert.severity)
+            .all()
+        )
+        alerts_summary = {str(severity.value): count for severity, count in active_alerts_by_severity}
+
     # Ensure all severities are present, even if count is 0
     for severity_enum in AlertSeverity:
         if severity_enum.value not in alerts_summary:
@@ -292,17 +323,28 @@ async def get_vital_signs_activity_stats(
     from datetime import datetime, timedelta
     import calendar
     
+    user_db = db.query(UserModel).filter(UserModel.id == current_user.id).first()
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Current user not found in database.")
+
     # Calculate date range (past 6 months including current month)
     end_date = datetime.now()
     start_date = end_date - timedelta(days=180)  # Approximately 6 months
     
-    # Query to get counts of vital signs by month
-    monthly_stats = (
-        db.query(
+    vitals_query = db.query(
             extract('month', models.Vitals.timestamp).label('month_num'),
             func.count(models.Vitals.id).label('count')
         )
-        .filter(
+
+    # If user is a doctor, filter vitals by their assigned patients
+    if user_db.role == UserRole.DOCTOR:
+        assigned_patient_ids = [patient.id for patient in user_db.patients]
+        if assigned_patient_ids:
+            vitals_query = vitals_query.filter(models.Vitals.patient_id.in_(assigned_patient_ids))
+
+    # Query to get counts of vital signs by month
+    monthly_stats = (
+        vitals_query.filter(
             models.Vitals.timestamp >= start_date,
             models.Vitals.timestamp <= end_date
         )

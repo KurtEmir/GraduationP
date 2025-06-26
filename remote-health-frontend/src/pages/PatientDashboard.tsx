@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { patientService } from '../services/patient';
 import { alertService } from '../services/alertService';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Patient, VitalSigns } from '../types/patient';
 import { Alert as AlertType } from '../types/alert';
 import {
@@ -224,8 +224,6 @@ const PatientDashboard: React.FC = () => {
       </div>
     );
   }
-
-
 
   // Create chart data for vital signs
   const vitalSignsData = {

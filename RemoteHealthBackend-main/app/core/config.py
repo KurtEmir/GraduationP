@@ -26,8 +26,7 @@ class Settings(BaseSettings):
         raise ValueError(v)
 
     # Database
-    # Using SQLite instead of PostgreSQL for easier setup
-    DATABASE_URL: str = "sqlite:///./remote_health.db"
+    DATABASE_URL: str = "postgresql://postgres:a.A12345@localhost:5432/remote_health_db"
 
     # JWT
     JWT_SECRET: str = "yGd0WI0GjQhkd_DznqggvGC-JT5XUAUARnp-YjyuzFk"
