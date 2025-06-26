@@ -1,0 +1,194 @@
+# Remote Health Monitoring System - Backend API Documentation
+
+## 1. Overview
+
+This document provides a guide for frontend developers (or an AI frontend developer) to interact with the Remote Health Monitoring System's backend API. The API is built with Python using the FastAPI framework and PostgreSQL as the database. It provides endpoints for user management, patient health records, vital signs tracking, alert generation, secure messaging, and doctor's notes.
+
+**Technology Stack:**
+*   **Backend:** Python, FastAPI
+*   **Database:** PostgreSQL
+*   **Authentication:** JWT (JSON Web Tokens)
+*   **Data Validation/Serialization:** Pydantic
+
+## 2. Project Structure (Relevant to Frontend)
+
+The core API logic resides within the `app/` directory:
+*   `app/main.py`: Main FastAPI application instance.
+*   `app/api/`: Contains API routers.
+    *   `app/api/api_v1/api.py`: Aggregates all version 1 API routers.
+    *   `app/api/api_v1/endpoints/`: Modules for specific resources (e.g., `auth.py`, `users.py`, `patient_records.py`, `alerts.py`). These define the actual API paths and logic.
+*   `app/schemas/`: Defines Pydantic models used for request and response data validation and serialization. **The frontend will need to align its data structures with these schemas.**
+*   `app/core/config.py`: Contains application settings, including `BACKEND_CORS_ORIGINS`.
+
+## 3. Backend Setup and Running
+
+1.  **Clone the repository.**
+2.  **Set up a Python virtual environment and install dependencies from `requirements.txt`.**
+3.  **Configure the `.env` file** in the project root:
+    ```env
+    DATABASE_URL=postgresql://your_user:your_password@your_host:your_port/your_db_name
+    JWT_SECRET=YOUR_VERY_SECURE_RANDOM_STRING
+    FIRST_SUPERUSER=admin@example.com
+    FIRST_SUPERUSER_PASSWORD=admin_password
+    BACKEND_CORS_ORIGINS='["http://localhost:3000", "http://127.0.0.1:3000", "YOUR_FRONTEND_URL_HERE"]' # Add your React app's URL
+    ```
+4.  **Run database migrations:** `alembic upgrade head`
+5.  **(Optional) Seed initial data:** `python -m app.db.initial_data`
+6.  **Start the backend server:**
+    ```bash
+    uvicorn app.main:app --reload --port 8000
+    ```
+    The API will be accessible at `http://localhost:8000`.
+
+## 4. Authentication
+
+The API uses JWT (JSON Web Tokens) for authentication.
+
+### 4.1. Login
+
+*   **Endpoint:** `POST /api/v1/auth/login/access-token`
+*   **Request Type:** `application/x-www-form-urlencoded`
+*   **Request Body (form data):**
+    *   `username`: User's email address (string, required)
+    *   `password`: User's password (string, required)
+*   **Response (JSON):**
+    ```json
+    {
+      "access_token": "YOUR_JWT_TOKEN",
+      "token_type": "bearer"
+    }
+    ```
+*   **Frontend Action:** Store the `access_token` securely (e.g., in HttpOnly cookies or browser's local storage) and use it for subsequent authenticated requests.
+
+### 4.2. User Registration
+
+*   **Endpoint:** `POST /api/v1/auth/register`
+*   **Request Type:** `application/json`
+*   **Request Body (JSON):** (Refer to `UserCreate` schema in `app/schemas/user.py`)
+    ```json
+    {
+      "email": "newuser@example.com",
+      "password": "strongpassword123",
+      "first_name": "John",
+      "last_name": "Doe"
+      // By default, new users are registered with the 'PATIENT' role.
+    }
+    ```
+*   **Response (JSON):** (Refer to `User` schema in `app/schemas/user.py`)
+    ```json
+    {
+      "id": 123,
+      "email": "newuser@example.com",
+      "is_active": true,
+      "is_superuser": false,
+      "role": "PATIENT",
+      "first_name": "John",
+      "last_name": "Doe"
+    }
+    ```
+
+### 4.3. Using the Token
+
+For endpoints that require authentication, include the JWT token in the `Authorization` header:
+`Authorization: Bearer YOUR_ACCESS_TOKEN`
+
+### 4.4. Getting Current User Info
+
+*   **Endpoint:** `GET /api/v1/auth/me`
+*   **Authentication:** Required
+*   **Response (JSON):** (Refer to `User` schema) User details of the authenticated user.
+
+## 5. API Endpoints
+
+All API v1 endpoints are prefixed with `/api/v1`. The API follows RESTful principles.
+
+*(Note: For detailed request/response schemas, query parameters, and specific fields, always refer to the interactive API documentation at `/docs` (Swagger UI) or `/redoc` when the backend is running.)*
+
+### 5.1. Users (`/users`)
+
+*   Managed by Superusers or Doctors.
+*   **`POST /users/`**: Create a new user.
+*   **`GET /users/`**: List all users.
+*   **`GET /users/{user_id}`**: Get a specific user.
+*   **`PUT /users/{user_id}`**: Update a user.
+
+### 5.2. Patient Records & Profiles (`/patient-records`)
+
+*   **`GET /patient-records/me`**: Get the logged-in patient's own profile.
+*   **`POST /patient-records/me`**: Create the logged-in patient's own profile.
+*   **`PUT /patient-records/me`**: Update the logged-in patient's own profile.
+*   **`GET /patient-records/`**: List all patient profiles (Doctors/Admins).
+*   **`GET /patient-records/{patient_id}`**: Get a specific patient's profile by `PatientProfile.id` (Doctors/Admins).
+*   **`POST /patient-records/`**: Create a patient profile for an existing user (Doctors/Admins).
+
+### 5.3. Vital Signs (nested under `/patient-records`)
+
+*   **`GET /patient-records/{patient_id}/vitals`**: List all vital signs for a patient (`patient_id` is `User.id`).
+*   **`POST /patient-records/{patient_id}/vitals`**: Add new vital signs for a patient (`patient_id` is `User.id`).
+*   **`GET /patient-records/vital-signs/stats`**: Retrieve aggregated statistics for the clinical overview dashboard.
+
+### 5.4. Alerts (`/alerts`)
+
+*   **`GET /alerts/`**: List all alerts (Doctors/Admins).
+*   **`GET /alerts/patient/{patient_id}`**: List alerts for a specific patient (`patient_id` is `User.id`).
+*   **`PUT /alerts/{alert_id}/resolve`**: Mark an alert as resolved.
+
+### 5.5. Messaging (`/messaging`)
+
+*   **`GET /messaging/partners`**: List chat partners for the logged-in user.
+*   **`GET /messaging/messages/{partner_id}`**: Get conversation with a specific user.
+*   **`POST /messaging/messages`**: Send a new message.
+*   **`PATCH /messaging/messages/{message_id}/read`**: Mark a message as read.
+
+### 5.6. Doctor Notes (`/notes`)
+
+*   **`GET /notes/{patient_id}`**: Get all notes for a specific patient.
+*   **`POST /notes/{patient_id}`**: Create a new note for a specific patient.
+
+## 6. Data Models & Schemas (Pydantic)
+
+The API uses Pydantic schemas for defining the structure of requests and responses. The frontend should align its data models with these schemas. Key schemas are located in `app/schemas/`. The interactive API documentation (`/docs`) will show the exact structure of these schemas.
+
+## 7. Error Handling
+
+The API returns standard HTTP status codes:
+*   **`2xx`**: Success (e.g., `200 OK`, `201 Created`).
+*   **`400 Bad Request`**: Invalid request payload.
+*   **`401 Unauthorized`**: Authentication failed or token missing/invalid.
+*   **`403 Forbidden`**: User does not have permission.
+*   **`404 Not Found`**: Resource not found.
+*   **`422 Unprocessable Entity`**: Validation error (e.g., data type mismatch).
+*   **`500 Internal Server Error`**: Unexpected server error.
+
+Error responses typically follow this JSON structure:
+```json
+{
+  "detail": "Error message or description"
+}
+```
+
+## 8. CORS (Cross-Origin Resource Sharing)
+
+The backend is configured to allow requests from specific origins defined in the `BACKEND_CORS_ORIGINS` setting in the `.env` file. **Ensure the URL of the React frontend application is included in this list.**
+
+## 9. Interactive API Documentation
+
+When the backend server is running, comprehensive interactive API documentation is available at:
+*   **Swagger UI:** `http://localhost:8000/docs`
+*   **ReDoc:** `http://localhost:8000/redoc`
+
+**This is the primary reference for frontend development.**
+
+## 10. Common Workflows for Frontend Implementation
+
+### Workflow 1: New Patient Registration and Profile Setup
+1.  **Frontend:** `POST /api/v1/auth/register` with user data.
+2.  **Frontend:** `POST /api/v1/auth/login/access-token` with credentials.
+3.  **Frontend:** Stores token.
+4.  **Frontend:** `POST /api/v1/patient-records/me` with profile details, including the token in `Authorization` header.
+
+### Workflow 2: Doctor Views Patient and Adds Note
+1.  **Frontend:** Doctor logs in.
+2.  **Frontend:** Fetches list of patients (`GET /api/v1/patient-records/`).
+3.  **Frontend:** Doctor selects a patient. Fetches details (`GET /api/v1/patient-records/{patient_id}`) and vitals (`GET /api/v1/patient-records/{user_id}/vitals`).
+4.  **Frontend:** Doctor adds a note (`POST /api/v1/notes/{user_id}`). 

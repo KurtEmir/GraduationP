@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom animations for medical dashboard */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes ecg-wave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.5); 
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+    transform: scale(1.05);
+  }
+}
+
+.heartbeat-animation {
+  animation: heartbeat 1s ease-in-out infinite;
+}
+
+.pulse-glow-animation {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.ecg-animation {
+  animation: ecg-wave 3s linear infinite;
+}
+
+/* Medical status indicators */
+.status-critical {
+  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.status-warning {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.status-normal {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+}
