@@ -131,7 +131,7 @@ const App: React.FC = () => {
               }
             />
             <Route 
-              path="/patients/:id" 
+              path="/patients/:userId" 
               element={
                 <AuthGuard allowedRoles={['DOCTOR' as UserRole]}>
                   <Layout><PatientDetailPage /></Layout>

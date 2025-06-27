@@ -1,10 +1,19 @@
 from typing import Any, Dict, Optional, Union
 from sqlalchemy.orm import Session
+import logging
 
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
 from app.models.user_model import User, UserRole, generate_doctor_code
 from app.schemas.user import UserCreate, UserUpdate
+
+# Setup file-based logging
+log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+log_handler = logging.FileHandler("registration.log")
+log_handler.setFormatter(log_formatter)
+logger = logging.getLogger(__name__)
+logger.addHandler(log_handler)
+logger.setLevel(logging.INFO)
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
@@ -19,7 +28,10 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             else:
                 # Optionally, handle the case where the code is invalid.
                 # For now, we'll just proceed without linking.
+                logger.warning(f"Invalid doctor_code '{obj_in.doctor_code}' provided during registration for user '{obj_in.email}'. No doctor will be assigned.")
                 pass
+        
+        logger.info(f"Preparing to create user '{obj_in.email}'. Assigning doctor_id: {doctor_id}")
 
         db_obj = User(
             email=obj_in.email,

@@ -49,6 +49,7 @@ const Header: React.FC<HeaderProps> = () => {
           {/* Enhanced Search Bar and Actions */}
           <div className="flex items-center space-x-6">
             {/* Enhanced Search Bar */}
+            {/* 
             <div className="relative hidden md:block">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <SearchIcon className="h-5 w-5 text-gray-400" />
@@ -59,6 +60,7 @@ const Header: React.FC<HeaderProps> = () => {
                 className="block w-80 pl-12 pr-4 py-3 border border-gray-300 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
               />
             </div>
+            */}
 
             {/* Notifications */}
             <div className="relative" ref={notificationDropdownRef}>

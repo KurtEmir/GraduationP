@@ -858,72 +858,78 @@ const DashboardPage: React.FC = () => {
             />
         </div>}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - This section will be removed */}
+        {/* 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Link
-            to="/add-patient"
-            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+            <Link
+              to="/patients/add" 
+              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Add Patient</p>
+                  <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">New Registration</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Add Patient</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">New Registration</p>
+            </Link>
+            <button
+              onClick={() => setIsMonitorModalOpen(true)}
+              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 text-purple-600 group-hover:from-purple-100 group-hover:to-violet-100 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Monitor</p>
+                  <p className="text-lg font-bold text-gray-800 group-hover:text-purple-600 transition-colors">Select Patients</p>
+                </div>
               </div>
-            </div>
-          </Link>
-          <button
-            onClick={() => setIsMonitorModalOpen(true)}
-            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 text-purple-600 group-hover:from-purple-100 group-hover:to-violet-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+            </button>
+            <Link
+              to="/messaging"
+              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 text-pink-600 group-hover:from-pink-100 group-hover:to-rose-100 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Messaging</p>
+                  <p className="text-lg font-bold text-gray-800 group-hover:text-pink-600 transition-colors">Patient Communication</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Monitor</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-purple-600 transition-colors">Select Patients</p>
+            </Link>
+            <Link
+              to="/patient-notes"
+              className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 text-orange-600 group-hover:from-orange-100 group-hover:to-red-100 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Clinical Notes</p>
+                  <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">Add Patient Notes</p>
+                </div>
               </div>
-            </div>
-          </button>
-          <Link
-            to="/messaging"
-            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 text-pink-600 group-hover:from-pink-100 group-hover:to-rose-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Messaging</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-pink-600 transition-colors">Patient Communication</p>
-              </div>
-            </div>
-          </Link>
-          <Link
-            to="/select-patient-for-notes"
-            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 text-orange-600 group-hover:from-orange-100 group-hover:to-red-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Clinical Notes</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">Add Patient Notes</p>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </div> 
+        */}
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Health Records Chart - REMOVED */}
         </div>
       </div>
     );

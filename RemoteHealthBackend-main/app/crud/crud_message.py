@@ -91,8 +91,7 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageCreate]): # Using Mess
             potential_partners = user_db.patients
         
         print(f"DEBUG: Found {len(potential_partners)} potential_partners.") # DEBUG
-        for i, partner_user_obj in enumerate(potential_partners):
-            print(f"DEBUG: Processing potential_partner #{i}: ID={partner_user_obj.id}, Name={partner_user_obj.full_name}, Role={partner_user_obj.role}, Email={partner_user_obj.email}") # DEBUG
+        for partner_user_obj in potential_partners:
             if partner_user_obj.id == user_db.id:
                 print(f"DEBUG: Skipping self (ID={user_db.id}).") # DEBUG
                 continue
@@ -100,9 +99,11 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageCreate]): # Using Mess
             last_msg_obj = self.get_last_message(db, user_id=user_db.id, partner_id=partner_user_obj.id)
             unread_count = self.get_unread_count(db, user_id=user_db.id, partner_id=partner_user_obj.id)
             
+            partner_full_name = f"{partner_user_obj.first_name} {partner_user_obj.last_name}"
+
             chat_partner_data = ChatPartnerSchema(
                 id=partner_user_obj.id,
-                name=partner_user_obj.full_name,
+                name=partner_full_name,
                 role=partner_user_obj.role,
                 last_message=last_msg_obj.content if last_msg_obj else None,
                 last_message_timestamp=last_msg_obj.timestamp if last_msg_obj else None,

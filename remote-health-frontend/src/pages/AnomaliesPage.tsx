@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { thresholdService } from '../services/thresholds';
-import { DiseaseThreshold } from '../types/thresholds';
-import { 
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -10,11 +8,12 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { thresholdService } from '../services/thresholds';
+import { DiseaseThreshold } from '../types/thresholds';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -26,18 +25,56 @@ ChartJS.register(
   Legend
 );
 
+const staticThresholds = [
+  {
+    vitalSign: 'Heart Rate (BPM)',
+    normalRange: '60 – 100 bpm',
+    lowThreshold: '< 50 bpm',
+    highThreshold: '> 110 bpm',
+    explanation: 'Resting heart rate; <50 = bradycardia, >110 = tachycardia.',
+  },
+  {
+    vitalSign: 'Temperature (°C)',
+    normalRange: '36.1 – 37.5 °C',
+    lowThreshold: '< 35.0 °C',
+    highThreshold: '> 38.0 °C',
+    explanation: '<35 = hypothermia, >38 = fever.',
+  },
+  {
+    vitalSign: 'SpO₂ (%)',
+    normalRange: '95 – 100%',
+    lowThreshold: '< 92%',
+    highThreshold: '–',
+    explanation: '<92% indicates potential hypoxemia (low oxygen level).',
+  },
+  {
+    vitalSign: 'Systolic BP (mmHg)',
+    normalRange: '90 – 120 mmHg',
+    lowThreshold: '< 90 mmHg',
+    highThreshold: '> 140 mmHg',
+    explanation: 'Systolic blood pressure; low = hypotension, high = hypertension.',
+  },
+  {
+    vitalSign: 'Diastolic BP (mmHg)',
+    normalRange: '60 – 80 mmHg',
+    lowThreshold: '< 60 mmHg',
+    highThreshold: '> 90 mmHg',
+    explanation: 'Diastolic blood pressure; low = hypotension, high = hypertension.',
+  },
+];
+
 const AnomaliesPage: React.FC = () => {
-  const [thresholds, setThresholds] = useState<DiseaseThreshold[]>([]);
+  const [dynamicThresholds, setDynamicThresholds] = useState<DiseaseThreshold[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<string>('heart_rate');
-  
+
   const availableMetrics = [
     { key: 'heart_rate', label: 'Heart Rate' },
     { key: 'temperature', label: 'Temperature' },
     { key: 'spo2', label: 'SpO2' },
     { key: 'systolic_bp', label: 'Systolic BP' },
-    { key: 'diastolic_bp', label: 'Diastolic BP' }
+    { key: 'diastolic_bp', label: 'Diastolic BP' },
   ];
 
   useEffect(() => {
@@ -45,63 +82,34 @@ const AnomaliesPage: React.FC = () => {
       try {
         setLoading(true);
         const data = await thresholdService.getAllThresholds();
-        setThresholds(data);
+        setDynamicThresholds(data);
         setError(null);
       } catch (err) {
         console.error('Error fetching disease thresholds:', err);
-        setError('Failed to load disease thresholds. Please try again later.');
+        setError('Failed to load dynamic thresholds for chart.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchThresholds();
   }, []);
 
   const getMetricBarChartData = (metric: string) => {
     const metricKeyMin = `${metric}_min` as keyof DiseaseThreshold;
     const metricKeyMax = `${metric}_max` as keyof DiseaseThreshold;
-
-    const normalThreshold = thresholds.find(t => t.disease === 'Normal');
-
-    if (!normalThreshold) {
-      // Fallback if "Normal" is not defined, show all
-      return {
-        labels: thresholds.map(t => t.disease),
-        datasets: [
-          {
-            label: 'Minimum Value',
-            data: thresholds.map(t => t[metricKeyMin] as number),
-            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-          },
-          {
-            label: 'Maximum Value',
-            data: thresholds.map(t => t[metricKeyMax] as number),
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-          },
-        ],
-      };
-    }
     
-    const normalMin = normalThreshold[metricKeyMin];
-    const normalMax = normalThreshold[metricKeyMax];
-
-    const relevantThresholds = thresholds.filter(t => 
-      t.disease === 'Normal' || t[metricKeyMin] !== normalMin || t[metricKeyMax] !== normalMax
-    );
-
     return {
-      labels: relevantThresholds.map(t => t.disease),
+      labels: dynamicThresholds.map(t => t.disease),
       datasets: [
         {
           label: 'Minimum Value',
-          data: relevantThresholds.map(t => t[metricKeyMin] as number),
-          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          data: dynamicThresholds.map(t => t[metricKeyMin] as number),
+          backgroundColor: 'rgba(75, 192, 192, 0.6)',
         },
         {
           label: 'Maximum Value',
-          data: relevantThresholds.map(t => t[metricKeyMax] as number),
-          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          data: dynamicThresholds.map(t => t[metricKeyMax] as number),
+          backgroundColor: 'rgba(255, 99, 132, 0.6)',
         },
       ],
     };
@@ -112,41 +120,34 @@ const AnomaliesPage: React.FC = () => {
     return metric ? metric.label : metricKey;
   };
 
-  if (loading) {
-    return <div className="p-6 text-center">Loading thresholds data...</div>;
-  }
-
-  if (error) {
-    return <div className="p-6 text-center text-red-500">Error: {error}</div>;
-  }
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Health Metric Thresholds</h1>
-      
+
+      {/* Dynamic Chart Section */}
       <div className="mb-8">
-        <label htmlFor="diseaseSelector" className="block text-sm font-medium text-gray-700 mb-2">
-          Select Health Metric:
-        </label>
-        <select
-          id="diseaseSelector"
-          value={selectedMetric}
-          onChange={(e) => setSelectedMetric(e.target.value)}
-          className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
-        >
-          {availableMetrics.map(metric => (
-            <option key={metric.key} value={metric.key}>
-              {metric.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {selectedMetric && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            {getMetricLabel(selectedMetric)} - Thresholds by Risk Level
-          </h2>
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Metric Analysis Chart</h2>
+        <div className="mb-4">
+          <label htmlFor="metricSelector" className="block text-sm font-medium text-gray-700 mb-2">
+            Select a metric to visualize:
+          </label>
+          <select
+            id="metricSelector"
+            value={selectedMetric}
+            onChange={(e) => setSelectedMetric(e.target.value)}
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+          >
+            {availableMetrics.map(metric => (
+              <option key={metric.key} value={metric.key}>
+                {metric.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {loading && <div className="p-4 text-center">Loading chart data...</div>}
+        {error && <div className="p-4 text-center text-red-500">{error}</div>}
+        {!loading && !error && (
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <div className="h-80">
               <Bar 
@@ -154,129 +155,40 @@ const AnomaliesPage: React.FC = () => {
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: false,
-                      title: {
-                        display: true,
-                        text: 'Values',
-                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.8)' : undefined
-                      },
-                      ticks: {
-                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.7)' : undefined
-                      },
-                      grid: {
-                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : undefined
-                      }
-                    },
-                    x: {
-                      ticks: {
-                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.7)' : undefined
-                      },
-                      grid: {
-                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : undefined
-                      }
-                    }
-                  },
                   plugins: {
-                    legend: {
-                      position: 'top',
-                      labels: {
-                        color: '#374151'
-                      }
-                    },
-                    title: {
-                      display: true,
-                      text: `${getMetricLabel(selectedMetric)} Thresholds`,
-                      color: '#111827'
-                    }
-                  }
+                    legend: { position: 'top' },
+                    title: { display: true, text: `${getMetricLabel(selectedMetric)} - Thresholds by Disease State` },
+                  },
+                  scales: { y: { beginAtZero: false } }
                 }}
               />
             </div>
           </div>
-        </div>
-      )}
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Threshold Table
-        </h2>
+        )}
+      </div>
+
+      {/* Static Reference Table Section */}
+      <div className="bg-white p-6 rounded-lg shadow-lg mt-12">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Reference Thresholds</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Risk Level
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Heart Rate (Min)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Heart Rate (Max)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Temperature (Min)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Temperature (Max)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SpO2 (Min)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SpO2 (Max)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Systolic BP (Min)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Systolic BP (Max)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Diastolic BP (Min)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Diastolic BP (Max)
-                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vital Sign</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Normal Range</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Low Threshold</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">High Threshold</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Explanation</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {thresholds.map((threshold) => (
-                <tr key={threshold.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {threshold.disease}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.heart_rate_min}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.heart_rate_max}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.temperature_min}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.temperature_max}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.spo2_min}
-                  </td>
-                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.spo2_max}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.systolic_bp_min}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.systolic_bp_max}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.diastolic_bp_min}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {threshold.diastolic_bp_max}
-                  </td>
+              {staticThresholds.map((item) => (
+                <tr key={item.vitalSign} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.vitalSign}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.normalRange}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.lowThreshold}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.highThreshold}</td>
+                  <td className="px-6 py-4 whitespace-normal text-sm text-gray-500">{item.explanation}</td>
                 </tr>
               ))}
             </tbody>

@@ -4,6 +4,12 @@ import { messageService } from '../services/messageService';
 import { ChatPartner, Message } from '../types/message';
 import { format, isToday, isYesterday } from 'date-fns';
 import { enUS } from 'date-fns/locale';
+import { useLocation } from 'react-router-dom';
+
+// Helper to parse query params
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
 
 // Helper function to format timestamp for chat list
 const formatChatListTimestamp = (isoTimestamp?: string): string => {
@@ -29,6 +35,7 @@ const getInitials = (name: string): string => {
 
 const MessagingPage: React.FC = () => {
   const { user } = useAuth();
+  const query = useQuery();
   const [chatPartners, setChatPartners] = useState<ChatPartner[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<ChatPartner | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -71,6 +78,17 @@ const MessagingPage: React.FC = () => {
   useEffect(() => {
     loadChatPartners();
   }, [loadChatPartners]);
+
+  // Effect to select a partner from URL query param
+  useEffect(() => {
+    const partnerIdFromUrl = query.get('partnerId');
+    if (partnerIdFromUrl && chatPartners.length > 0 && !selectedPartner) {
+      const partnerToSelect = chatPartners.find(p => p.id === parseInt(partnerIdFromUrl, 10));
+      if (partnerToSelect) {
+        setSelectedPartner(partnerToSelect);
+      }
+    }
+  }, [chatPartners, query, selectedPartner]);
 
   const loadMessages = useCallback(async (partnerId: number) => {
     setLoadingMessages(true);

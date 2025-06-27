@@ -21,6 +21,7 @@ export const authService = {
           first_name: data.firstName,
           last_name: data.lastName,
           role: data.role,
+          doctor_code: data.doctor_code,
         }),
       });
 
@@ -70,10 +71,10 @@ export const authService = {
         throw new Error(result.detail || result.message || JSON.stringify(result) || 'Failed to login');
       }
 
-      if (result && typeof result.token === 'string' && result.token.length > 0 && result.user && result.user.id) {
-        localStorage.setItem('token', result.token);
+      if (result && result.token && typeof result.token.access_token === 'string' && result.token.access_token.length > 0 && result.user && result.user.id) {
+        localStorage.setItem('token', result.token.access_token);
         return {
-          token: result.token,
+          token: result.token.access_token,
           user: {
             id: result.user.id,
             email: result.user.email,

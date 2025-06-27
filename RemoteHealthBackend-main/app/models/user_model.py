@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, Enum, ForeignKey
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from .base import Base
 import enum
 import random
@@ -41,16 +41,9 @@ class User(Base):
     received_messages = relationship("Message", foreign_keys="Message.receiver_id", back_populates="receiver")
     doctor_notes = relationship("DoctorNotes", foreign_keys="[DoctorNotes.doctor_id]", back_populates="doctor")
     
-    # Relationship for Doctor -> Patients (One to Many)
-    patients = relationship("User",
-        back_populates="doctor",
-        foreign_keys=[doctor_id]
-    )
-
-    # Relationship for Patient -> Doctor (Many to One)
-    doctor = relationship("User",
-        back_populates="patients",
-        remote_side=[id],
-        foreign_keys=[doctor_id],
-        uselist=False
+    # Corrected Relationship for Doctor (One) to Patients (Many)
+    patients = relationship(
+        "User",
+        backref=backref("doctor", remote_side=[id]),  # Correctly defines the back-reference
+        foreign_keys=[doctor_id]  # Links this relationship via the doctor_id column
     ) 

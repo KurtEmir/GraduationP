@@ -31,33 +31,24 @@ def register(
         )
     user = crud.user.create(db, obj_in=user_in)
     
-    # Auto-create patient profile if user role is PATIENT
+    # Re-introducing the logic to auto-create a patient profile
     if user.role == UserRole.PATIENT:
         from app.crud import patients as crud_patients
         from app.schemas.patient import PatientProfileCreate
         
-        doctor_id = None
-        if user_in.doctor_code:
-            doctor = db.query(UserModel).filter(UserModel.doctor_code == user_in.doctor_code, UserModel.role == UserRole.DOCTOR).first()
-            if not doctor:
-                # This part needs careful consideration. For now, let's raise an error.
-                # In a real-world scenario, you might want to handle this more gracefully.
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid Doctor Code provided.",
-                )
-            doctor_id = doctor.id
-
+        # Create a patient profile linked to the new user
         patient_profile_data = PatientProfileCreate(
             user_id=user.id,
             full_name=f"{user.first_name} {user.last_name}",
-            doctor_id=doctor_id,
-            age=25,  # Default age, user can update later
-            date_of_birth=None,  # User can set this later
-            gender="Not specified",  # User can set this later
+            # The user object already has the correct doctor_id from the create step
+            doctor_id=user.doctor_id, 
+            # Set other fields to default/null values
+            age=None,
+            date_of_birth=None,
+            gender="Not specified",
             chronic_diseases="None",
-            address="",  # User can set this later
-            phone_number=""  # User can set this later
+            address=None,
+            phone_number=None
         )
         crud_patients.create(db, obj_in=patient_profile_data)
     
@@ -67,7 +58,7 @@ def register(
     )
     return {
         "user": user,
-        "token": access_token
+        "token": {"access_token": access_token, "token_type": "bearer"}
     }
 
 @router.post("/login", response_model=AuthResponse)
@@ -98,7 +89,7 @@ def login(
     )
     return {
         "user": user,
-        "token": access_token
+        "token": {"access_token": access_token, "token_type": "bearer"}
     }
 
 @router.get("/me", response_model=UserSchema)

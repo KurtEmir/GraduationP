@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func # Added func
 from typing import List, Optional
 from app.api import deps
@@ -64,49 +64,42 @@ def read_all_patient_profiles(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    name_search: Optional[str] = None,
-    chronic_disease_filter: Optional[str] = None,
-    alarm_severity_filter: Optional[AlertSeverity] = None,
     current_user: UserSchema = Depends(deps.get_current_active_user),
 ):
     """
     Retrieve all patient profiles.
-    Accessible only by DOCTOR, ADMIN, or superuser.
-    Supports filtering by name, chronic disease, and alarm severity.
+    If user is a doctor, retrieves only their assigned patients.
+    If user is an admin, retrieves all patients.
     """
     if not (current_user.role in [UserRole.DOCTOR, UserRole.ADMIN] or current_user.is_superuser):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access all patient profiles.",
+            detail="Not authorized to access patient profiles.",
         )
     
-    # If the user is a doctor, we only want to fetch their assigned patients.
-    doctor_id_to_filter = None
-    if current_user.role == UserRole.DOCTOR:
-        doctor_id_to_filter = current_user.id
+    user_db = db.query(UserModel).options(joinedload(UserModel.patients)).filter(UserModel.id == current_user.id).first()
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Current user not found in database.")
 
-    patient_profiles_models = crud_patients_obj.get_multi_filtered(
-        db=db, 
-        skip=skip, 
-        limit=limit,
-        name_search=name_search,
-        chronic_disease_filter=chronic_disease_filter,
-        alarm_severity_filter=alarm_severity_filter,
-        doctor_id=doctor_id_to_filter # Pass down the doctor's ID
-    )
+    patients_to_return = []
+    if user_db.role == UserRole.DOCTOR:
+        patients_to_return = user_db.patients
+    elif user_db.role == UserRole.ADMIN or user_db.is_superuser:
+        all_users_with_profiles = db.query(UserModel).options(joinedload(UserModel.patient_profile)).filter(UserModel.patient_profile != None).all()
+        patients_to_return = all_users_with_profiles
 
-    if not patient_profiles_models:
-        return [] 
+    paginated_patients = patients_to_return[skip : skip + limit]
 
     response_list = []
-    for profile_model in patient_profiles_models:
-        user_model = db.query(models.User).filter(models.User.id == profile_model.user_id).first()
-        if user_model: 
+    for patient_user in paginated_patients:
+        # The user object is the patient, fetch their profile
+        profile_model = db.query(models.PatientProfile).filter(models.PatientProfile.user_id == patient_user.id).first()
+        if profile_model:
             response_data = {
                 "id": profile_model.id,
-                "user_id": profile_model.user_id,
-                "email": user_model.email, 
-                "role": user_model.role,   
+                "user_id": patient_user.id,
+                "email": patient_user.email,
+                "role": patient_user.role,
                 "full_name": profile_model.full_name,
                 "age": profile_model.age,
                 "chronic_diseases": profile_model.chronic_diseases,
@@ -118,7 +111,25 @@ def read_all_patient_profiles(
                 "created_at": profile_model.created_at,
                 "updated_at": profile_model.updated_at,
             }
-            response_list.append(PatientDataResponse(**response_data))
+        else:
+            # If no profile, create a response with basic user info
+            response_data = {
+                "id": None,
+                "user_id": patient_user.id,
+                "email": patient_user.email,
+                "role": patient_user.role,
+                "full_name": f"{patient_user.first_name} {patient_user.last_name}",
+                "age": None,
+                "chronic_diseases": None,
+                "date_of_birth": None,
+                "gender": None,
+                "address": None,
+                "phone_number": None,
+                "risk_score": None,
+                "created_at": None, # No profile, so no creation date for it
+                "updated_at": None,
+            }
+        response_list.append(PatientDataResponse(**response_data))
             
     return response_list
 
@@ -154,6 +165,64 @@ def read_patient_profile_by_id(
             detail=f"User associated with patient profile ID {patient_id} not found.",
         )
 
+    response_data = {
+        "id": profile_model.id,
+        "user_id": profile_model.user_id,
+        "email": user_model.email,
+        "role": user_model.role,
+        "full_name": profile_model.full_name,
+        "age": profile_model.age,
+        "chronic_diseases": profile_model.chronic_diseases,
+        "date_of_birth": profile_model.date_of_birth,
+        "gender": profile_model.gender,
+        "address": profile_model.address,
+        "phone_number": profile_model.phone_number,
+        "risk_score": None,
+        "created_at": profile_model.created_at,
+        "updated_at": profile_model.updated_at,
+    }
+    return PatientDataResponse(**response_data)
+
+@router.get("/user/{user_id}", response_model=PatientDataResponse)
+def read_patient_profile_by_user_id(
+    user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: UserSchema = Depends(deps.get_current_active_user),
+):
+    """
+    Retrieve a specific patient's profile by their User ID.
+    Accessible only by DOCTOR or superuser.
+    """
+    if not (current_user.role == UserRole.DOCTOR or current_user.is_superuser):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this patient profile.",
+        )
+
+    # Fetch the User model first
+    user_model = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user_model:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found.",
+        )
+    
+    # Fetch the associated PatientProfile
+    profile_model = db.query(models.PatientProfile).filter(models.PatientProfile.user_id == user_id).first()
+    if not profile_model:
+        # If no profile, we can still return basic user info as we did in the list view
+        response_data = {
+            "id": None,
+            "user_id": user_model.id,
+            "email": user_model.email,
+            "role": user_model.role,
+            "full_name": f"{user_model.first_name} {user_model.last_name}",
+            "created_at": None, # No profile, so no timestamps
+            "updated_at": None,
+        }
+        return PatientDataResponse(**response_data)
+
+    # If profile exists, return full data
     response_data = {
         "id": profile_model.id,
         "user_id": profile_model.user_id,
@@ -240,65 +309,65 @@ def get_clinical_overview_statistics(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access clinical overview statistics.",
         )
-    
+
+    # Fetch the full user object from the DB to access relationships
     user_db = db.query(UserModel).filter(UserModel.id == current_user.id).first()
     if not user_db:
         raise HTTPException(status_code=404, detail="Current user not found in database.")
 
-    # Base query for patients
-    patients_query = db.query(models.PatientProfile)
-    alerts_query = db.query(Alert)
+    total_patients = 0
+    critical_alerts = 0
+    warning_alerts = 0
 
-    # If the current user is a doctor, filter by their assigned patients
     if user_db.role == UserRole.DOCTOR:
-        # Get IDs of patients assigned to this doctor
-        assigned_patient_user_ids = [patient.id for patient in user_db.patients]
-        if not assigned_patient_user_ids:
-            total_patient_count = 0
-            alerts_summary = {}
-        else:
-            # Filter PatientProfile and Alert queries
-            patients_query = patients_query.join(UserModel, models.PatientProfile.user_id == UserModel.id).filter(UserModel.id.in_(assigned_patient_user_ids))
-            alerts_query = alerts_query.filter(Alert.patient_id.in_(assigned_patient_user_ids))
-            total_patient_count = patients_query.count()
-            active_alerts_by_severity = (
-                alerts_query.filter(Alert.is_resolved == False)
-                .group_by(Alert.severity)
-                .all()
-            )
-            alerts_summary = {str(severity.value): count for severity, count in active_alerts_by_severity}
-    else:
-        # For admins, count all patients
-        total_patient_count = patients_query.count()
-        active_alerts_by_severity = (
-            alerts_query.filter(Alert.is_resolved == False)
-            .group_by(Alert.severity)
-            .all()
-        )
-        alerts_summary = {str(severity.value): count for severity, count in active_alerts_by_severity}
+        # Correctly count patients via the relationship
+        total_patients = len(user_db.patients)
+        
+        patient_ids = [patient.id for patient in user_db.patients]
+        if patient_ids:
+            alerts_query = db.query(Alert).filter(Alert.patient_id.in_(patient_ids))
+            critical_alerts = alerts_query.filter(Alert.severity == AlertSeverity.RED, Alert.is_resolved == False).count()
+            warning_alerts = alerts_query.filter(Alert.severity == AlertSeverity.YELLOW, Alert.is_resolved == False).count()
 
-    # Ensure all severities are present, even if count is 0
-    for severity_enum in AlertSeverity:
-        if severity_enum.value not in alerts_summary:
-            alerts_summary[severity_enum.value] = 0
+    elif user_db.role == UserRole.ADMIN or user_db.is_superuser:
+        # Admins see all patients
+        total_patients = db.query(models.PatientProfile).count()
+        alerts_query = db.query(Alert)
+        critical_alerts = alerts_query.filter(Alert.severity == AlertSeverity.RED, Alert.is_resolved == False).count()
+        warning_alerts = alerts_query.filter(Alert.severity == AlertSeverity.YELLOW, Alert.is_resolved == False).count()
+    
+    # Placeholder values for other stats
+    active_patients_count = total_patients 
+    new_this_week_count = 0 # Placeholder, needs date-based logic
+    urgent_alerts_count = critical_alerts # Assuming critical = urgent
+    pending_review_alerts_count = 0 # Placeholder
+    under_review_alerts_count = 0 # Placeholder
+    resolved_today_alerts_count = 0 # Placeholder
+    total_records_managed = 0 # Placeholder
+    updated_today_records_count = 0 # Placeholder
+    pending_review_records_count = 0 # Placeholder
 
-    # Distribution of patients by chronic disease (simple count for now)
-    # This is a basic approach. A more robust solution would involve normalizing the chronic_diseases field.
-    all_chronic_diseases_str = db.query(models.PatientProfile.chronic_diseases).filter(models.PatientProfile.chronic_diseases.isnot(None)).all()
-    
-    disease_distribution = {}
-    for diseases_tuple in all_chronic_diseases_str:
-        if diseases_tuple[0]: # Check if the string is not None or empty
-            diseases_list = [d.strip().lower() for d in diseases_tuple[0].split(',') if d.strip()]
-            for disease in diseases_list:
-                disease_distribution[disease] = disease_distribution.get(disease, 0) + 1
-    
     return {
-        "total_patient_count": total_patient_count,
-        "active_alerts_by_severity": alerts_summary,
-        "chronic_disease_distribution": disease_distribution,
-        # Placeholder for other stats if needed in the future
-        "message": "Clinical overview statistics."
+        "total_patients": {
+            "count": total_patients,
+            "active": active_patients_count,
+            "new_this_week": new_this_week_count
+        },
+        "critical_alerts": {
+            "count": critical_alerts,
+            "urgent": urgent_alerts_count,
+            "pending_review": pending_review_alerts_count
+        },
+        "warning_alerts": {
+            "count": warning_alerts,
+            "under_review": under_review_alerts_count,
+            "resolved_today": resolved_today_alerts_count
+        },
+        "health_records": {
+            "count": total_records_managed,
+            "updated_today": updated_today_records_count,
+            "pending_review": pending_review_records_count
+        }
     }
 
 @router.get("/vital-signs/stats", response_model=List[dict])

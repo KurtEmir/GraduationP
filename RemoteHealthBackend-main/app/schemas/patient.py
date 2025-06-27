@@ -47,7 +47,7 @@ class PatientProfile(PatientProfileInDBBase):
     pass
 
 class PatientDataResponse(BaseModel):
-    id: int = Field(..., description="PatientProfile ID")
+    id: Optional[int] = Field(None, description="PatientProfile ID")
     user_id: int = Field(..., description="User ID from users table")
     email: EmailStr
     role: UserRole
@@ -59,7 +59,7 @@ class PatientDataResponse(BaseModel):
     address: Optional[str] = None
     phone_number: Optional[str] = None
     risk_score: Optional[float] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     class Config:

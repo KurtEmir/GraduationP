@@ -29,6 +29,17 @@ export const patientService = {
         return response.json();
     },
 
+    async getPatientByUserId(userId: number): Promise<Patient> {
+        const response = await fetch(`${API_URL}/patient-records/user/${userId}`, {
+            headers: {
+                ...getAuthHeader(),
+                'Content-Type': 'application/json',
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch patient by user ID');
+        return response.json();
+    },
+
     async getCurrentPatientProfile(): Promise<Patient | null> {
         // Only call this endpoint if the user is a patient (from AuthContext if available)
         let userRole = null;
@@ -165,12 +176,15 @@ export const patientService = {
         }
     },
 
-    async deletePatient(id: number): Promise<void> {
-        const response = await fetch(`${API_URL}/patient-records/${id}`, {
+    async deletePatient(userId: number): Promise<void> {
+        const response = await fetch(`${API_URL}/users/${userId}`, {
             method: 'DELETE',
             headers: getAuthHeader(),
         });
-        if (!response.ok) throw new Error('Failed to delete patient');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Failed to delete patient' }));
+            throw new Error(errorData.detail || 'Failed to delete patient');
+        }
     },
 
     async createPatient(data: Omit<Patient, 'id' | 'user_id' | 'role' | 'status' | 'createdAt' | 'updatedAt'>): Promise<Patient> {
