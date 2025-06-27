@@ -177,8 +177,11 @@ async def generate_data_for_patient(patient_id: int,
                 )
                 
                 # Save to database
-                crud_vitals.create_with_patient(db, obj_in=vitals_create, patient_id=patient_id)
-                logger.info(f"Generated vital signs for patient {patient_id}")
+                # crud_vitals.create_with_patient(db, obj_in=vitals_create, patient_id=patient_id)
+                # Use the new centralized function that includes anomaly checks
+                crud_vitals.vitals.create_and_check(db, obj_in=vitals_create, patient_id=patient_id)
+
+                logger.info(f"Generated and checked vital signs for patient {patient_id}")
                 
             finally:
                 db.close()

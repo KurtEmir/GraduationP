@@ -83,8 +83,8 @@ const PatientListPage: React.FC = () => {
               <div className="flex items-center gap-4 mb-4">
                 <div className="h-14 w-14 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-300">
                   {getInitials(patient.full_name)}
-                </div>
-                <div>
+              </div>
+              <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate" title={patient.full_name || ''}>
                     {patient.full_name || 'N/A'}
                   </h3>
@@ -104,11 +104,11 @@ const PatientListPage: React.FC = () => {
                       }`}>
                           {patient.status ? patient.status.charAt(0).toUpperCase() + patient.status.slice(1) : 'Unknown'}
                       </span>
-                  </div>
+            </div>
                   <div className="flex justify-between">
                       <span className="text-gray-500 dark:text-gray-400">Last Updated</span>
                       <span className="font-medium text-gray-800 dark:text-gray-200">
-                          {patient.updatedAt ? new Date(patient.updatedAt).toLocaleDateString() : 'N/A'}
+                  {patient.updatedAt ? new Date(patient.updatedAt).toLocaleDateString() : 'N/A'}
                       </span>
                   </div>
               </div>

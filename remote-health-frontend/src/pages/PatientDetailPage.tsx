@@ -69,7 +69,7 @@ const PatientDetailPage: React.FC = () => {
           setVitals([]);
           setError(prevError => prevError || 'Warning: Failed to load vital signs');
         }
-        
+
         // Fetch alerts with better error handling and fallback
         try {
           // First try the documented endpoint

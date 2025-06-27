@@ -20,7 +20,7 @@ def update_user(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     updated_user = user_crud.update(db, db_obj=current_user, obj_in=user_in)
-    return updated_user
+    return updated_user 
 
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
 def delete_user(

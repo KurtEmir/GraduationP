@@ -91,7 +91,7 @@ export const alertService = {
     // await new Promise(resolve => setTimeout(resolve, 500));
     // console.log(`Returning ${MOCK_ALERTS.length} total alerts`);
     // return MOCK_ALERTS;
-    const response = await fetch(`${API_URL}/alerts`, { // Assuming endpoint for all alerts (admin/doctor)
+    const response = await fetch(`${API_URL}/alerts/`, { // ENSURE TRAILING SLASH
         headers: getAuthHeader()
     });
     if (!response.ok) throw new Error('Failed to fetch all alerts');

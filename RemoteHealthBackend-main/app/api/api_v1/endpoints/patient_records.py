@@ -8,7 +8,6 @@ from app.schemas.user import User as UserSchema
 from app.crud import patients as crud_patients_obj
 from app.crud import vitals as crud_vitals
 from app.models.user_model import UserRole, User as UserModel
-from app.models.domain_models import AlertSeverity, Alert # Added Alert
 from app import models, schemas
 import logging # Add logging
 
@@ -129,7 +128,7 @@ def read_all_patient_profiles(
                 "created_at": None, # No profile, so no creation date for it
                 "updated_at": None,
             }
-        response_list.append(PatientDataResponse(**response_data))
+            response_list.append(PatientDataResponse(**response_data))
             
     return response_list
 
@@ -276,20 +275,20 @@ def create_patient_vital(
     vital_in: VitalsCreate,
     current_user: UserSchema = Depends(deps.get_current_active_user)
 ):
-    """Create new vital sign entry for a specific patient."""
-    target_patient_user = db.query(models.User).filter(models.User.id == patient_id, models.User.role == UserRole.PATIENT).first()
-    if not target_patient_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Patient with user_id {patient_id} not found for vitals creation")
+    """
+    Create new vital signs for a patient.
+    This will also trigger anomaly detection and alert generation via the CRUD layer.
+    """
+    if not (current_user.role == UserRole.DOCTOR or current_user.is_superuser or (current_user.role == UserRole.PATIENT and current_user.id == patient_id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to add vitals for this patient.",
+        )
 
-    # Extract the actual ID value from the SQLAlchemy model
-    target_patient_user_id = getattr(target_patient_user, 'id')
-    
-    if not (current_user.id == target_patient_user_id or \
-            current_user.role in [UserRole.DOCTOR, UserRole.ADMIN] or \
-            current_user.is_superuser):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to add vitals for this patient")
+    # Call the new centralized function in crud_vitals
+    vital = crud_vitals.vitals.create_and_check(db=db, obj_in=vital_in, patient_id=patient_id)
 
-    return crud_vitals.create_with_patient(db, obj_in=vital_in, patient_id=target_patient_user_id)
+    return vital
 
 @router.get("/ping")
 def ping_patients_router():
@@ -309,7 +308,7 @@ def get_clinical_overview_statistics(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access clinical overview statistics.",
         )
-
+    
     # Fetch the full user object from the DB to access relationships
     user_db = db.query(UserModel).filter(UserModel.id == current_user.id).first()
     if not user_db:
@@ -346,7 +345,7 @@ def get_clinical_overview_statistics(
     total_records_managed = 0 # Placeholder
     updated_today_records_count = 0 # Placeholder
     pending_review_records_count = 0 # Placeholder
-
+    
     return {
         "total_patients": {
             "count": total_patients,
@@ -395,7 +394,7 @@ async def get_vital_signs_activity_stats(
     user_db = db.query(UserModel).filter(UserModel.id == current_user.id).first()
     if not user_db:
         raise HTTPException(status_code=404, detail="Current user not found in database.")
-
+    
     # Calculate date range (past 6 months including current month)
     end_date = datetime.now()
     start_date = end_date - timedelta(days=180)  # Approximately 6 months

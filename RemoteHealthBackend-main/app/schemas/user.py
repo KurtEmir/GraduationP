@@ -17,7 +17,7 @@ class UserCreate(UserBase):
 # Properties to receive via API on update
 class UserUpdate(UserBase):
     password: Optional[str] = None
-    
+
 class UserInDBBase(UserBase):
     id: int
     is_active: bool
@@ -33,7 +33,7 @@ class User(UserInDBBase):
 # Additional properties stored in DB
 class UserInDB(UserInDBBase):
     hashed_password: str
-    
+
 class Token(BaseModel):
     access_token: str
     token_type: str

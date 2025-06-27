@@ -39,7 +39,7 @@ class User(Base):
     vitals = relationship("Vitals", back_populates="patient")
     sent_messages = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender")
     received_messages = relationship("Message", foreign_keys="Message.receiver_id", back_populates="receiver")
-    doctor_notes = relationship("DoctorNotes", foreign_keys="[DoctorNotes.doctor_id]", back_populates="doctor")
+    doctor_notes = relationship("DoctorNotes", foreign_keys="[DoctorNotes.doctor_id]", back_populates="doctor") 
     
     # Corrected Relationship for Doctor (One) to Patients (Many)
     patients = relationship(

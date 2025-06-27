@@ -100,7 +100,7 @@ class CRUDMessage(CRUDBase[Message, MessageCreate, MessageCreate]): # Using Mess
             unread_count = self.get_unread_count(db, user_id=user_db.id, partner_id=partner_user_obj.id)
             
             partner_full_name = f"{partner_user_obj.first_name} {partner_user_obj.last_name}"
-
+            
             chat_partner_data = ChatPartnerSchema(
                 id=partner_user_obj.id,
                 name=partner_full_name,

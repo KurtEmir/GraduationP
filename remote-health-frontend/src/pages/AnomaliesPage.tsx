@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
+import { 
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -68,7 +68,7 @@ const AnomaliesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<string>('heart_rate');
-
+  
   const availableMetrics = [
     { key: 'heart_rate', label: 'Heart Rate' },
     { key: 'temperature', label: 'Temperature' },
@@ -97,7 +97,7 @@ const AnomaliesPage: React.FC = () => {
   const getMetricBarChartData = (metric: string) => {
     const metricKeyMin = `${metric}_min` as keyof DiseaseThreshold;
     const metricKeyMax = `${metric}_max` as keyof DiseaseThreshold;
-    
+
     return {
       labels: dynamicThresholds.map(t => t.disease),
       datasets: [
@@ -123,28 +123,28 @@ const AnomaliesPage: React.FC = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Health Metric Thresholds</h1>
-
+      
       {/* Dynamic Chart Section */}
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-gray-800 mb-4">Metric Analysis Chart</h2>
         <div className="mb-4">
           <label htmlFor="metricSelector" className="block text-sm font-medium text-gray-700 mb-2">
             Select a metric to visualize:
-          </label>
-          <select
+        </label>
+        <select
             id="metricSelector"
-            value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value)}
-            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
-          >
-            {availableMetrics.map(metric => (
-              <option key={metric.key} value={metric.key}>
-                {metric.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        
+          value={selectedMetric}
+          onChange={(e) => setSelectedMetric(e.target.value)}
+          className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+        >
+          {availableMetrics.map(metric => (
+            <option key={metric.key} value={metric.key}>
+              {metric.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      
         {loading && <div className="p-4 text-center">Loading chart data...</div>}
         {error && <div className="p-4 text-center text-red-500">{error}</div>}
         {!loading && !error && (
@@ -165,7 +165,7 @@ const AnomaliesPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+        </div>
 
       {/* Static Reference Table Section */}
       <div className="bg-white p-6 rounded-lg shadow-lg mt-12">

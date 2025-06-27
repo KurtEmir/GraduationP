@@ -66,9 +66,9 @@ class PatientDataResponse(BaseModel):
         from_attributes = True
 
 class VitalsBase(BaseModel):
-    heart_rate: float
+    heart_rate: float = Field(..., alias='heartRate')
     temperature: float
-    spo2: float
+    spo2: float = Field(..., alias='oxygenSaturation')
     source: str
     systolic: Optional[int] = None
     diastolic: Optional[int] = None
@@ -78,9 +78,9 @@ class VitalsCreate(VitalsBase):
     pass
 
 class VitalsUpdate(BaseModel):
-    heart_rate: Optional[float] = None
+    heart_rate: Optional[float] = Field(None, alias='heartRate')
     temperature: Optional[float] = None
-    spo2: Optional[float] = None
+    spo2: Optional[float] = Field(None, alias='oxygenSaturation')
     source: Optional[str] = None
     systolic: Optional[int] = None
     diastolic: Optional[int] = None
@@ -88,11 +88,12 @@ class VitalsUpdate(BaseModel):
 
 class VitalsInDBBase(VitalsBase):
     id: int
-    patient_id: int
+    patient_id: int = Field(..., alias='patientId')
     timestamp: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 class Vitals(VitalsInDBBase):
     pass

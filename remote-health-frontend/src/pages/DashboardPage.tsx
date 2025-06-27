@@ -835,7 +835,7 @@ const DashboardPage: React.FC = () => {
     const formattedDate = format(today, 'dd MMMM yyyy, EEEE', { locale: enUS });
     const userFullName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'User';
 
-    return (
+  return (
       <div className="p-6 bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="p-8 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg rounded-2xl mb-8">
@@ -846,14 +846,14 @@ const DashboardPage: React.FC = () => {
               <p className="text-white">Your code: <span className="font-bold bg-white text-indigo-600 px-2 py-1 rounded">{user.doctor_code}</span></p>
             </div>
           )}
-        </div>
+      </div>
 
         {user && <div className="mb-8">
-            <DashboardSummaryCards
-                totalPatients={patients.length}
+          <DashboardSummaryCards
+            totalPatients={patients.length}
                 criticalAlerts={allSystemAlerts.length}
                 anomalies={2} // Placeholder for now
-                healthRecords={healthRecordsActivity.reduce((sum, item) => sum + item.count, 0)}
+            healthRecords={healthRecordsActivity.reduce((sum, item) => sum + item.count, 0)}
                 userRole={user.role}
             />
         </div>}
@@ -861,7 +861,7 @@ const DashboardPage: React.FC = () => {
         {/* Quick Actions - This section will be removed */}
         {/* 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Link
+                <Link
               to="/patients/add" 
               className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 group"
             >
@@ -925,13 +925,13 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
             </Link>
-          </div> 
+          </div>
         */}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Health Records Chart - REMOVED */}
-        </div>
-      </div>
+          </div>
+          </div>
     );
   };
 
